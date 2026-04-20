@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Sniper Pró - Ciclos & Recuperação</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <button id="btn-audio" onclick="toggleAudio()">🔇 Ativar Som para Iniciar</button>
+
+    <h1 style="margin-top: 50px;">Painel Sniper Pró</h1>
+
+    <div class="container">
+        <div class="card" style="border-top-color: #10B981; border-top-width: 6px;">
+            <div class="card-header" style="color: #34D399;">💰 Simulador de Banca & Gestão</div>
+            <div class="card-body">
+                <div class="sim-banca-container" style="display: flex; gap: 20px; align-items: center; justify-content: space-between;">
+                    <div class="sim-banca-inputs" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">Banca Inicial (R$):</label><br>
+                            <input type="number" id="input-banca" class="banca-input" value="100.00" step="10" oninput="updateData()">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold;">Valor Ficha Base (R$):</label><br>
+                            <input type="number" id="input-ficha" class="banca-input" value="1.00" step="0.5" oninput="updateData()">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: #F87171; font-weight: bold;">Multiplicador Recuperação:</label><br>
+                            <input type="number" id="input-mult" class="banca-input" value="2.0" step="0.5" oninput="updateData()" style="border-color: #F87171;">
+                        </div>
+                    </div>
+                    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+                        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">Saldo Atual na Sessão</div>
+                        <div id="saldo-atual" style="font-size: 2.8rem; font-weight: 900; color: #34D399; line-height: 1.1;">R$ 0,00</div>
+                        <div id="saldo-lucro" style="font-size: 1.1rem; font-weight: bold; color: #94A3B8;">Lucro: R$ 0,00</div>
+                        <div id="saldo-mesa" style="font-size: 1.1rem; font-weight: bold; color: #FCD34D; display: none; margin-top: 5px;">Em Jogo (Mesa): R$ 0,00</div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button onclick="resetSimulator()" title="Zerar Sessão" style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3B82F6; border-radius: 8px; width: 40px; height: 40px; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3B82F6'; this.querySelector('svg').style.stroke='#fff'" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)'; this.querySelector('svg').style.stroke='#3B82F6'">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                            </button>
+                            
+                            <button onclick="exportSessionData()" title="Exportar Histórico (CSV)" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10B981; border-radius: 8px; width: 40px; height: 40px; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#10B981'; this.querySelector('svg').style.stroke='#fff'" onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.querySelector('svg').style.stroke='#10B981'">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border-left: 4px solid #3B82F6;">
+                    <div id="recovery-status-badge" class="normal-banner">✅ MODO OPERAÇÃO NORMAL</div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.85rem; color: #94A3B8; font-weight: bold; text-transform: uppercase;">Dívida Acumulada</div>
+                        <div id="recovery-debt" style="font-size: 1.25rem; font-weight: bold; color: #F8FAFC;">R$ 0,00</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>📊 Histórico (Últimos Resultados)</div>
+                <select id="history-limit" style="background:#1e293b; color:#fff; border:1px solid #3b82f6; border-radius:4px; padding:5px; font-weight: bold;">
+                    <option value="50" selected>50 Números</option>
+                    <option value="100">100 Números</option>
+                    <option value="200">200 Números</option>
+                    <option value="300">300 Números</option>
+                    <option value="500">500 Números</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <div class="history-grid" id="history-grid"></div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #8B5CF6;">
+            <div class="card-header" style="color: #C4B5FD;">
+                <div>🎡 Racetrack Europeu</div>
+                <button id="btn-heatmap" onclick="toggleHeatmap()" style="background: transparent; color: #C4B5FD; border: 1px solid #8B5CF6; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-weight: bold; font-size: 0.8rem; transition: 0.3s;">
+                    🔥 Heatmap: OFF
+                </button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div class="racetrack-container">
+                    <svg viewBox="0 0 780 180" id="racetrack-svg"></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: var(--primary-green);">
+            <div class="card-header" style="color: var(--primary-green);">🎯 Ciclo de Operação Sniper</div>
+            <div class="card-body">
+                <div style="display: flex; gap: 15px; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; flex-wrap: wrap;">
+                    <label style="font-weight: 800; color: #94A3B8; text-transform: uppercase; font-size: 0.9rem;">🛡️ Filtro de Entrada:</label>
+                    <select id="entry-filter" style="background:#0B1120; color:#fff; border:2px solid #3b82f6; border-radius:6px; padding:8px; font-weight: bold; outline:none; cursor: pointer;" onchange="updateData()">
+                        <option value="virtual_loss" selected>Loss Virtual (Entrar após 2 falhas da roleta)</option>
+                        <option value="extreme_delay">🛡️ Atraso Extremo (Entrar após 5 falhas)</option>
+                        <option value="confirm">Confirmação (Entrar após 2 alvos seguidos)</option>
+                        <option value="surf">🌊 Surfista (Entrar logo após 1 alvo)</option>
+                        <option value="classic">Clássico (Entrar após 1 alvo - Maior Risco)</option>
+                    </select>
+                </div>
+
+                <div id="monitor-message" class="monitor-alert alert-waiting">Iniciando análise de padrões...</div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #F59E0B;">
+            <div class="card-header" style="color: #FCD34D;">📈 Desempenho da Estratégia (Histórico Visual)</div>
+            <div class="card-body">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-title">Entradas</div>
+                        <div class="stat-value text-blue" id="stat-entradas">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-title">Win Direto</div>
+                        <div class="stat-value text-green" id="stat-win-direto">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-title">Win G1</div>
+                        <div class="stat-value text-yellow" id="stat-win-g1">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-title">Loss (Perda)</div>
+                        <div class="stat-value text-red" id="stat-loss">0</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 15px; font-size: 0.95rem; color: #94A3B8;">
+                    Taxa de Acerto Visual: <strong id="stat-assertividade" style="color: #fff; font-size: 1.1rem;">0%</strong>
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 20px 0;">
+                
+                <div class="group-panels-container" style="display: flex; gap: 15px;">
+                    <div class="group-panel group-panel-win">
+                        <div style="color: #34D399; font-weight: bold; margin-bottom: 5px; font-size: 1.1rem;">✅ WIN (Números Amarelos)</div>
+                        <div style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 10px; line-height: 1.4;">
+                            16, 33, 1, 20, 14, 31, 9, 35, 3, 26, 0, 4, 21, 2, 27, 13, 36, 11, 30, 8, 23, 10
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="color: #F8FAFC; font-size: 0.9rem;">Total de Vitórias no grupo:</span>
+                            <span style="font-size: 2rem; font-weight: 800; color: #fff;" id="panel-win-total">0</span>
+                        </div>
+                    </div>
+                    <div class="group-panel group-panel-loss">
+                        <div style="color: #F87171; font-weight: bold; margin-bottom: 5px; font-size: 1.1rem;">❌ LOSS (Vermelhos e Pretos)</div>
+                        <div style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 10px; line-height: 1.4;">
+                            5, 24, 22, 18, 29, 7, 28, 12, 32, 15, 19, 25, 17, 34, 6
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="color: #F8FAFC; font-size: 0.9rem;">Total de Derrotas no grupo:</span>
+                            <span style="font-size: 2rem; font-weight: 800; color: #fff;" id="panel-loss-total">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #06B6D4;">
+            <div class="card-header" style="color: #67E8F9;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    ⚡ Rastreador de Múltiplas Estratégias
+                    <span style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.15); color: #22D3EE; padding: 3px 8px; border-radius: 12px; border: 1px solid #06B6D4; text-transform: uppercase; letter-spacing: 1px;">Módulo Auxiliar</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0; margin-bottom: 20px;">
+                    Monitoramento simultâneo de tendências secundárias operando em background.
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                    
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; transition: all 0.3s;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; color: #F8FAFC; font-size: 1.05rem;">📍 Terminais Numéricos</span>
+                            <span style="width: 12px; height: 12px; background: #3B82F6; border-radius: 50%; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);"></span>
+                        </div>
+                        <div id="tracker-terminais-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">
+                            Buscando repetição de terminais (ex: 4, 14, 24).
+                        </div>
+                        <div id="tracker-terminais-status" style="font-size: 0.8rem; font-weight: bold; color: #60A5FA; background: rgba(59, 130, 246, 0.1); padding: 5px 10px; border-radius: 4px; display: inline-block;">
+                            Status: Coletando Dados...
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid var(--primary-green); border-radius: 8px; padding: 15px; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; color: #34D399; font-size: 1.05rem;">📊 Padrão de Dúzias</span>
+                            <span style="width: 12px; height: 12px; background: var(--primary-green); border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                        </div>
+                        <div id="tracker-duzias-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">
+                            Monitorando ausência prolongada.
+                        </div>
+                        <div id="tracker-duzias-status" style="font-size: 0.8rem; font-weight: bold; color: #059669; background: rgba(16, 185, 129, 0.2); padding: 5px 10px; border-radius: 4px; display: inline-block;">
+                            Status: Coletando Dados...
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; color: #F8FAFC; font-size: 1.05rem;">🌗 Alternância de Cores</span>
+                            <span style="width: 12px; height: 12px; background: #94A3B8; border-radius: 50%;"></span>
+                        </div>
+                        <div id="tracker-cores-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">
+                            Monitorando surfada de cores (V-P-V-P).
+                        </div>
+                        <div id="tracker-cores-status" style="font-size: 0.8rem; font-weight: bold; color: #94A3B8; background: rgba(255, 255, 255, 0.05); padding: 5px 10px; border-radius: 4px; display: inline-block;">
+                            Status: Aguardando Padrão
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #EAB308;">
+            <div class="card-header" style="color: #FDE047;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    🧮 Matriz de Dúzias e Colunas
+                    <span style="font-size: 0.7rem; background: rgba(234, 179, 8, 0.15); color: #FDE047; padding: 3px 8px; border-radius: 12px; border: 1px solid #EAB308; text-transform: uppercase; letter-spacing: 1px;">Sinais de Quebra e Atraso</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    
+                    <div style="flex: 1; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <h3 style="margin-top: 0; font-size: 1rem; color: var(--text-muted); text-align: center;">Status das Dúzias</h3>
+                        <div style="display: flex; justify-content: space-between; text-align: center;">
+                            <div>
+                                <div style="font-weight: bold; color: #F8FAFC;">1ª Dúzia (1-12)</div>
+                                <div id="dz1-status" style="font-size: 0.85rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #F8FAFC;">2ª Dúzia (13-24)</div>
+                                <div id="dz2-status" style="font-size: 0.85rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #F8FAFC;">3ª Dúzia (25-36)</div>
+                                <div id="dz3-status" style="font-size: 0.85rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <h3 style="margin-top: 0; font-size: 1rem; color: var(--text-muted); text-align: center;">Status das Colunas</h3>
+                        <div style="display: flex; justify-content: space-between; text-align: center;">
+                            <div>
+                                <div style="font-weight: bold; color: #F8FAFC;">1ª Col (1, 4...)</div>
+                                <div id="col1-status" style="font-size: 0.85rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #F8FAFC;">2ª Col (2, 5...)</div>
+                                <div id="col2-status" style="font-size: 0.85rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #F8FAFC;">3ª Col (3, 6...)</div>
+                                <div id="col3-status" style="font-size: 0.85rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="matriz-signal-alert" style="margin-top: 15px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; background: #1E293B; color: #94A3B8; border: 1px dashed var(--border-color);">
+                    Aguardando formatação de padrão nas Dúzias e Colunas...
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #EC4899;">
+            <div class="card-header" style="color: #F472B6;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    🐎 Zonas da Roleta & Cavalos Quentes
+                    <span style="font-size: 0.7rem; background: rgba(236, 72, 153, 0.15); color: #F472B6; padding: 3px 8px; border-radius: 12px; border: 1px solid #EC4899; text-transform: uppercase; letter-spacing: 1px;">Confluência de Padrões</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <h3 style="margin-top: 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase;">Repetições e Atrasos por Região</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 0.9rem;">Voisins (Vizinhos)</div>
+                        <div id="zone-voisins-status" style="font-size: 0.8rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 0.9rem;">Tiers (Terço)</div>
+                        <div id="zone-tier-status" style="font-size: 0.8rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 0.9rem;">Orphelins (Órfãos)</div>
+                        <div id="zone-orphelins-status" style="font-size: 0.8rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 0.9rem;">Jogo do Zero</div>
+                        <div id="zone-zero-status" style="font-size: 0.8rem; color: #94A3B8; margin-top: 5px;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div id="zona-signal-alert" style="padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; background: #1E293B; color: #94A3B8; border: 1px dashed var(--border-color); font-size: 0.95rem;">
+                        Aguardando padrão de Zonas (Tiers, Voisins, Orphelins, Zero)...
+                    </div>
+                    <div id="cavalo-signal-alert" style="padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; background: #1E293B; color: #94A3B8; border: 1px dashed var(--border-color); font-size: 0.95rem;">
+                        Aguardando repetição de Cavalos (Splits)...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #F97316;">
+            <div class="card-header" style="color: #FDBA74;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    🐴 Estratégia de Cavalos por Terminais
+                    <span style="font-size: 0.7rem; background: rgba(249, 115, 22, 0.15); color: #FDBA74; padding: 3px 8px; border-radius: 12px; border: 1px solid #F97316; text-transform: uppercase; letter-spacing: 1px;">Operação de Curto Prazo</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0; margin-bottom: 15px;">
+                    Monitoramento da divisão de terminais (147, 258, 0369) para capturar surfadas rápidas e evitar volatilidade de longo prazo.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 1.1rem; margin-bottom: 8px;">Terminais 1-4-7</div>
+                        <div style="font-size: 0.8rem; color: #64748B; margin-bottom: 10px;">(1, 4, 7, 11, 14, 17, 21...)</div>
+                        <div id="term-147-status" style="font-size: 0.9rem; color: #94A3B8; font-weight: bold;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 1.1rem; margin-bottom: 8px;">Terminais 2-5-8</div>
+                        <div style="font-size: 0.8rem; color: #64748B; margin-bottom: 10px;">(2, 5, 8, 12, 15, 18, 22...)</div>
+                        <div id="term-258-status" style="font-size: 0.9rem; color: #94A3B8; font-weight: bold;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-weight: bold; color: #F8FAFC; font-size: 1.1rem; margin-bottom: 8px;">Terminais 0-3-6-9</div>
+                        <div style="font-size: 0.8rem; color: #64748B; margin-bottom: 10px;">(0, 3, 6, 9, 10, 13, 16...)</div>
+                        <div id="term-0369-status" style="font-size: 0.9rem; color: #94A3B8; font-weight: bold;">Atraso: 0 | Repetições: 0</div>
+                    </div>
+                </div>
+
+                <div id="terminal-signal-alert" style="padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; background: #1E293B; color: #94A3B8; border: 1px dashed var(--border-color); font-size: 1.05rem;">
+                    Aguardando repetição de grupos de terminais para validar entrada...
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #A855F7;">
+            <div class="card-header" style="color: #D8B4FE;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    🔢 Central de Análise de Terminais (0 a 9)
+                    <span style="font-size: 0.7rem; background: rgba(168, 85, 247, 0.15); color: #D8B4FE; padding: 3px 8px; border-radius: 12px; border: 1px solid #A855F7; text-transform: uppercase; letter-spacing: 1px;">Amostragem: 15 Giros</span>
+                </div>
+            </div>
+            <div class="card-body">
+                
+                <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center; background: rgba(168, 85, 247, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #A855F7; flex-wrap: wrap;">
+                    <label style="font-weight: bold; color: #D8B4FE; font-size: 0.9rem; text-transform: uppercase;">🎯 Estratégia de Cobertura:</label>
+                    <select id="terminal-vizinhos" style="background:#0B1120; color:#fff; border:1px solid #A855F7; border-radius:6px; padding:6px 12px; font-weight: bold; cursor: pointer; outline: none;" onchange="updateData()">
+                        <option value="0" selected>Somente o Terminal (Seco)</option>
+                        <option value="1">Terminal + 1 Vizinho (Cada Lado)</option>
+                        <option value="2">Terminal + 2 Vizinhos (Cada Lado)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94A3B8; margin-bottom: 5px;">
+                        <span id="term-chart-title">Estratégia Dominante Atual: Calculando...</span>
+                        <span id="term-chart-pct" style="font-weight: bold; color: #F8FAFC;">0%</span>
+                    </div>
+                    <div style="width: 100%; background: #1E293B; border-radius: 4px; height: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+                        <div id="term-chart-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); transition: width 0.5s ease-out;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 0.8rem; color: #64748B; margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">Selecione os terminais para catalogação:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;" id="terminal-checkboxes-container">
+                        </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 0.8rem; color: #94A3B8; font-weight: bold;">Mais Repetido</div>
+                        <div id="term-stat-rep" style="font-size: 1.4rem; font-weight: 900; color: #34D399; margin-top: 5px;">-</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 0.8rem; color: #94A3B8; font-weight: bold;">Mais Intercalado</div>
+                        <div id="term-stat-int" style="font-size: 1.4rem; font-weight: 900; color: #60A5FA; margin-top: 5px;">-</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 0.8rem; color: #94A3B8; font-weight: bold;">Quente / Frio</div>
+                        <div id="term-stat-qf" style="font-size: 1.4rem; font-weight: 900; margin-top: 5px;">- / -</div>
+                    </div>
+                </div>
+
+                <div style="background: #0F172A; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #F8FAFC; font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase;">📊 Desempenho da Estratégia Selecionada (Últimos 15)</h4>
+                    <div id="term-catalog-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; text-align: center;">
+                        </div>
+                </div>
+
+                <div id="adv-terminal-signal" style="padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; background: #1E293B; color: #94A3B8; border: 1px dashed var(--border-color); font-size: 1.05rem;">
+                    Aguardando análise dos terminais para gerar sinal...
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: #06B6D4; box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);">
+            <div class="card-header" style="color: #67E8F9; background: linear-gradient(90deg, #0F172A, #164E63);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    🧠 IA de Confluência Global & Padrões (Meta-Análise 500 Giros)
+                    <span style="font-size: 0.7rem; background: rgba(6, 182, 212, 0.2); color: #22D3EE; padding: 3px 8px; border-radius: 12px; border: 1px solid #06B6D4; text-transform: uppercase; letter-spacing: 1px;">Deep Learning</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0; margin-bottom: 15px;">
+                    Este módulo rastreia todos os sinais do painel e analisa cruzamentos matemáticos nos <strong>últimos 500 giros</strong> (números que se puxam, repetição de sequências e fluxos de colunas). Apenas padrões com máxima ressonância são validados.
+                </p>
+
+                <div style="display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap;">
+                    
+                    <div style="flex: 1; min-width: 200px; text-align: center; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-size: 0.9rem; color: #94A3B8; text-transform: uppercase; font-weight: bold; margin-bottom: 10px;">Nível de Confiança da Rede</div>
+                        <div style="position: relative; width: 120px; height: 120px; margin: 0 auto; display: flex; justify-content: center; align-items: center; border-radius: 50%; background: conic-gradient(#06B6D4 0%, #1E293B 0%);" id="ai-confidence-ring">
+                            <div style="width: 100px; height: 100px; background: #0B1120; border-radius: 50%; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+                                <span id="ai-score-pct" style="font-size: 2rem; font-weight: 900; color: #F8FAFC;">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 2; min-width: 300px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="background: #1E293B; padding: 12px; border-radius: 6px; border-left: 4px solid #3B82F6;">
+                            <span style="font-size: 0.8rem; color: #94A3B8; display: block;">Análise de Terminais & Zonas</span>
+                            <span id="ai-log-1" style="font-weight: bold; color: #F8FAFC; font-size: 0.95rem;">Coletando pesos neurais...</span>
+                        </div>
+                        <div style="background: #1E293B; padding: 12px; border-radius: 6px; border-left: 4px solid #F59E0B;">
+                            <span style="font-size: 0.8rem; color: #94A3B8; display: block;">Confluência de Dúzias & Colunas</span>
+                            <span id="ai-log-2" style="font-weight: bold; color: #F8FAFC; font-size: 0.95rem;">Aguardando cruzamento de dados...</span>
+                        </div>
+                        <div style="background: #1E293B; padding: 12px; border-radius: 6px; border-left: 4px solid #A855F7;">
+                            <span style="font-size: 0.8rem; color: #94A3B8; display: block;">Estatística Profunda (Puxadas e Sequências Históricas)</span>
+                            <span id="ai-log-3" style="font-weight: bold; color: #D8B4FE; font-size: 0.95rem;">Mapeando histórico de 500 giros...</span>
+                        </div>
+                        <div id="ai-final-decision" style="margin-top: 5px; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; background: rgba(255,255,255,0.05); color: #64748B; border: 1px dashed #475569; font-size: 1.1rem; transition: all 0.3s;">
+                            Avaliando viabilidade de entrada segura...
+                        </div>
+                    </div>
+
+                </div>
+
+                <div style="margin-top: 25px; background: #0F172A; padding: 20px; border-radius: 8px; border: 1px solid #06B6D4; box-shadow: inset 0 0 20px rgba(6,182,212,0.1);">
+                    <h4 style="margin: 0 0 15px 0; color: #22D3EE; text-transform: uppercase; text-align: center; letter-spacing: 1px;">🔮 4 Números-Chave (Máxima Probabilidade)</h4>
+                    <p style="text-align: center; font-size: 0.85rem; color: #94A3B8; margin-top: -10px; margin-bottom: 20px;">
+                        Com base nas cadeias de Markov (puxadas), sequências repetidas, força de coluna e confluência do painel global.
+                    </p>
+                    <div id="ai-top-4-container" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                        </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card" style="display: none;">
+            <div class="card-header">🏠 Operação</div>
+            <div class="card-body" style="padding: 0;">
+                <iframe src="https://1pra1.online/" style="width:100%; height:600px; border:none;"></iframe>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
